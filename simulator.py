@@ -20,7 +20,7 @@ def worker(num):
   values = Node.servers.values()
   while True:
     lb = random.choice(values)
-    requestTime = (random.randrange(100)+1/100) * maxPageLoadTime
+    requestTime = (random.randrange(100)/100) * maxPageLoadTime
     lb.externalRequest(requestTime, fb)
     with count.get_lock():
       count.value += 1
