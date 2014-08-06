@@ -5,20 +5,23 @@ from firebase import firebase
 from multiprocessing import Process, Value
 
 # number of nodes in network
-numNodes = 45
+numNodes = 4500
 
 # number of workers simulating clients
-numWorkers = 25
+numWorkers = 30
+
+# maximum page response time
+maxPageLoadTime = 5
 
 firebaseUrl = "<PUT YOUR FIREBASE URL HERE>"
 
 def worker(num):
-  print "Worker " + str(num) + " reporting for duty!"
   fb = firebase.FirebaseApplication(firebaseUrl, None)
   values = Node.servers.values()
   while True:
     lb = random.choice(values)
-    lb.externalRequest(random.randrange(420), fb)
+    requestTime = (random.randrange(100)+1/100) * maxPageLoadTime
+    lb.externalRequest(requestTime, fb)
     with count.get_lock():
       count.value += 1
     c = count.value
@@ -26,8 +29,8 @@ def worker(num):
     sys.stdout.write("\rRunning at " + str(rate) + " requests/second")
     sys.stdout.flush()
 
-def factors(n):
-  return [i for i in range(1, n + 1) if not n%i]
+def wait(n):
+  time.sleep(n)
 
 def signalRequest(fb, start, end):
   fb.post(start+"/"+end, "request")
@@ -41,7 +44,7 @@ class Node:
     self.name = name
 
   def internalRequest(self, payload):
-    factors(payload)
+    wait(payload)
 
   def externalRequest(self, payload, fb):
     if not hasattr(self, 'iter'):
