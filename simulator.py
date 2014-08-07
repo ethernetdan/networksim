@@ -5,7 +5,7 @@ from firebase import firebase
 from multiprocessing import Process, Value
 
 # number of nodes in network
-numNodes = 4500
+numNodes = 450
 
 # number of workers simulating clients
 numWorkers = 30
@@ -15,7 +15,7 @@ maxPageLoadTime = 5
 
 firebaseUrl = "<PUT YOUR FIREBASE URL HERE>"
 
-def worker(num):
+def worker(i):
   fb = firebase.FirebaseApplication(firebaseUrl, None)
   values = Node.servers.values()
   while True:
@@ -33,10 +33,10 @@ def wait(n):
   time.sleep(n)
 
 def signalRequest(fb, start, end):
-  fb.post(start+"/"+end, "request")
+  fb.post("potluck/"+start+"/"+end, "request")
 
 def signalResponse(fb, start, end):
-  fb.post(start+"/"+end, "response")
+  fb.post("potluck/"+start+"/"+end, "response")
 
 class Node:
   servers = {}
@@ -75,16 +75,26 @@ def setupNodes():
     Node.add_node()
 
 if __name__ == '__main__':
-  setupNodes()
+  try:
+    fb = firebase.FirebaseApplication(firebaseUrl, None)
+    setupNodes()
 
-  start = time.time()
-  count = Value('i', 0)
-  p = {}
-  print "Press Enter to stop execution"
-  for i in range(numWorkers):
-    p[i]=Process(target=worker, args=(i,))
-    p[i].start()
-
-  raw_input("")
-  for i in range(numWorkers):
-    p[i].terminate()
+    start = time.time()
+    count = Value('i', 0)
+    p = {}
+    print "Press Enter to stop execution"
+    for i in range(numWorkers):
+      p[i]=Process(target=worker, args=(i,))
+      p[i].start()
+    raw_input("")
+  except AssertionError:
+    print "SETUP FAILED: Check that you are using a valid Firebase reference"
+  except KeyboardInterrupt:
+    print "Close requested, killing workers..."
+  except Exception:
+    traceback.print_exc(file=sys.stdout)
+  finally:
+    if 'p' in locals():
+      for i in range(len(p)):
+        p[i].terminate()
+    sys.exit(0)
